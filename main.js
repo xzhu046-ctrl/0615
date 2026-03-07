@@ -50,8 +50,9 @@ function applyPhoneFrameVisibility(visible, persist){
 }
 
 function syncAppHeight(){
-  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const viewportHeight = Math.round(window.visualViewport ? window.visualViewport.height : window.innerHeight);
   document.documentElement.style.setProperty('--app-height', viewportHeight + 'px');
+  document.body.style.minHeight = viewportHeight + 'px';
 }
 
 function isGifDataUrl(dataUrl){
@@ -630,22 +631,23 @@ function renderHomePageIndicator(){
 
 function bindHomePager(){
   const pages = document.getElementById('home-pages');
-  if(!pages) return;
-  pages.addEventListener('pointerdown', (evt)=>{
+  const surface = document.getElementById('home-content') || pages;
+  if(!pages || !surface) return;
+  surface.addEventListener('pointerdown', (evt)=>{
     if(evt.pointerType === 'mouse' && evt.button !== 0) return;
     pagerPointerId = evt.pointerId;
     pagerStartX = evt.clientX;
     pagerStartY = evt.clientY;
     pagerDragging = false;
   });
-  pages.addEventListener('pointermove', (evt)=>{
+  surface.addEventListener('pointermove', (evt)=>{
     if(pagerPointerId !== evt.pointerId) return;
     const dx = evt.clientX - pagerStartX;
     const dy = evt.clientY - pagerStartY;
     if(!pagerDragging){
       if(Math.abs(dx) < 12 || Math.abs(dx) <= Math.abs(dy)) return;
       pagerDragging = true;
-      pages.setPointerCapture(evt.pointerId);
+      surface.setPointerCapture(evt.pointerId);
     }
     evt.preventDefault();
     const offset = -(homePageIndex * getHomePageStep()) + dx;
@@ -670,8 +672,8 @@ function bindHomePager(){
     pagerDragging = false;
     pagerPointerId = null;
   };
-  pages.addEventListener('pointerup', finish);
-  pages.addEventListener('pointercancel', finish);
+  surface.addEventListener('pointerup', finish);
+  surface.addEventListener('pointercancel', finish);
 }
 
 function openPlaceholderMiniApp(idx){
