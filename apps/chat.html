@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover">
 <title>Chat</title>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
 <script src="../promptManager.js"></script>
@@ -12,9 +12,11 @@
 :root{
   --b:#0a0a0a;--w:#fff;--off:#f7f7f7;--g:#888;--pale:#eee;
   --bd:2px solid #0a0a0a;--sh:2px 2px 0 #0a0a0a;
-  --font:'Quicksand',sans-serif;--fontd:'Nunito',sans-serif
+  --font:'Quicksand',sans-serif;--fontd:'Nunito',sans-serif;
+  --chat-app-height:100vh
 }
-body{font-family:var(--font);background:var(--off);color:var(--b);height:100vh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+html,body{width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
+body{font-family:var(--font);background:var(--off);color:var(--b);height:var(--chat-app-height);min-height:var(--chat-app-height);display:flex;flex-direction:column;overflow:hidden;position:relative}
 button{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;color:var(--b);-webkit-text-fill-color:currentColor}
 
 /* ── Header ── */
@@ -30,7 +32,7 @@ button{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;color:
 .hdr-icon-btn{width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;font-size:17px}
 
 /* ── Messages ── */
-.messages{flex:1;overflow-y:auto;padding:12px 12px 8px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
+.messages{flex:1;overflow-y:auto;padding:12px 12px max(8px, env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
 .messages::-webkit-scrollbar{display:none}
 .msg{display:flex;gap:8px;max-width:88%;animation:msgIn .2s ease-out}
 .msg.voice-msg{gap:8px}
@@ -104,7 +106,7 @@ button{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;color:
 .err-notice a{font-weight:800;cursor:pointer;text-decoration:underline;color:#c00}
 
 /* ── Input area ── */
-.chat-input-area{background:var(--w);border-top:var(--bd);padding:10px 12px;display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
+.chat-input-area{background:var(--w);border-top:var(--bd);padding:10px 12px max(10px, env(safe-area-inset-bottom));display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
 .input-wrap{flex:1;background:var(--off);border:var(--bd);border-radius:16px;padding:9px 13px;display:flex;flex-direction:column;align-items:stretch;gap:7px;transition:none;box-shadow:3px 3px 0 var(--b)}
 .input-wrap:focus-within{box-shadow:3px 3px 0 var(--b)}
 #msg-input{flex:1;border:none;background:transparent;font-family:var(--font);font-size:13px;font-weight:600;color:var(--b);outline:none;resize:none;max-height:90px;line-height:1.5;-webkit-text-fill-color:currentColor;font-variant-emoji:text}
@@ -150,6 +152,7 @@ button{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;color:
 .avatar-pick{width:54px;height:54px;border-radius:14px;border:var(--bd);background:var(--pale);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;flex-shrink:0;overflow:hidden;box-shadow:var(--sh);transition:transform .12s;position:relative}
 .avatar-pick:active{transform:scale(.93)}
 .avatar-pick img{width:100%;height:100%;object-fit:cover}
+.avatar-pick-symbol{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:var(--fontd);font-size:24px;font-weight:900;line-height:1;color:var(--b)}
 .avatar-pick-icon{position:relative;display:block;width:24px;height:24px;flex:0 0 auto}
 .avatar-pick-icon.char::before{content:'';position:absolute;left:3px;top:2px;width:18px;height:18px;border:2px solid var(--b);border-radius:50%;background:var(--w)}
 .avatar-pick-icon.char::after{content:'';position:absolute;left:9px;top:8px;width:6px;height:6px;border-radius:50%;background:var(--b);box-shadow:0 -8px 0 -1px var(--b), -6px 5px 0 -2px var(--b), 6px 5px 0 -2px var(--b)}
@@ -569,12 +572,14 @@ function resolveReplyTargetId(replyTo, replyRole){
   }
   var exact = recent.find(function(m){
     if(roleNeed && m.role !== roleNeed) return false;
-    return String(m.content || '').trim() === hint;
+    return String(m.content || '').trim() === hint || getReplySnippetText(m) === hint;
   });
   if(exact) return exact.id;
   var partial = recent.find(function(m){
     if(roleNeed && m.role !== roleNeed) return false;
-    return String(m.content || '').indexOf(hint) >= 0 || hint.indexOf(String(m.content || '').trim()) >= 0;
+    var content = String(m.content || '').trim();
+    var snippet = getReplySnippetText(m);
+    return content.indexOf(hint) >= 0 || hint.indexOf(content) >= 0 || snippet.indexOf(hint) >= 0 || hint.indexOf(snippet) >= 0;
   });
   return partial ? partial.id : null;
 }
@@ -891,9 +896,15 @@ function saveStoredAsset(key, value){
   }
 }
 
-function getAvatarPlaceholderHtml(kind){
-  var type = kind === 'user' ? 'user' : 'char';
-  return '<span class="avatar-pick-icon ' + type + '" aria-hidden="true"></span><div class="avatar-pick-hint">换头像</div>';
+function getAvatarPlaceholderHtml(kind, symbol){
+  var text = String(symbol || '').trim();
+  if(text){
+    return '<span class="avatar-pick-symbol" aria-hidden="true">' + esc(text) + '</span><div class="avatar-pick-hint">换头像</div>';
+  }
+  if(kind === 'user'){
+    return '<span class="avatar-pick-symbol" aria-hidden="true">+</span><div class="avatar-pick-hint">换头像</div>';
+  }
+  return '<span class="avatar-pick-icon char" aria-hidden="true"></span><div class="avatar-pick-hint">换头像</div>';
 }
 
 function updateHeader() {
@@ -1536,6 +1547,22 @@ function closeImageViewer(){
   document.getElementById('imageViewOverlay')?.classList.remove('open');
 }
 
+function syncChatViewport(){
+  var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--chat-app-height', Math.round(vh) + 'px');
+}
+
+function keepComposerVisible(){
+  var list = document.getElementById('messages');
+  var input = document.getElementById('msg-input');
+  if(list) list.scrollTop = list.scrollHeight;
+  if(input){
+    setTimeout(function(){
+      try{ input.scrollIntoView({ block:'nearest' }); }catch(e){}
+    }, 80);
+  }
+}
+
 var _vo = document.getElementById('voiceOverlay');
 if(_vo){
   _vo.addEventListener('click', function(e){ if(e.target === _vo) closeVoiceInput(); });
@@ -1631,7 +1658,7 @@ function openChatSettings() {
   if (character) {
     var av = document.getElementById('csCharAvatar');
     if (character.imageData) { av.innerHTML = '<img src="' + character.imageData + '"><div class="avatar-pick-hint">换头像</div>'; }
-    else { av.innerHTML = getAvatarPlaceholderHtml('char'); }
+    else { av.innerHTML = getAvatarPlaceholderHtml('char', character.avatar || ''); }
     loadStoredAsset('char_avatar_' + character.id).then(function(ovr){
       if (ovr && ovr.startsWith('data:')) { av.innerHTML = '<img src="' + ovr + '"><div class="avatar-pick-hint">换头像</div>'; }
     });
@@ -1643,7 +1670,7 @@ function openChatSettings() {
   }
   // Populate user
   var uav = document.getElementById('csUserAvatar');
-  uav.innerHTML = getAvatarPlaceholderHtml('user');
+  uav.innerHTML = getAvatarPlaceholderHtml('user', '+');
   loadStoredAsset(userKey('user_avatar')).then(function(savedUav){
     if (savedUav && savedUav.startsWith('data:')) { uav.innerHTML = '<img src="' + savedUav + '"><div class="avatar-pick-hint">换头像</div>'; }
   });
@@ -1965,9 +1992,23 @@ document.addEventListener('input', function(e){
   try{ target.setSelectionRange(start, end); }catch(err){}
 }, true);
 
+window.addEventListener('resize', syncChatViewport);
+window.addEventListener('orientationchange', syncChatViewport);
+window.addEventListener('focusin', function(e){
+  if(e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) keepComposerVisible();
+});
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', function(){
+    syncChatViewport();
+    keepComposerVisible();
+  });
+  window.visualViewport.addEventListener('scroll', syncChatViewport);
+}
+
 // ════════════════════════════════════════════
 //  Start
 // ════════════════════════════════════════════
+syncChatViewport();
 init();
 </script>
 </body>
