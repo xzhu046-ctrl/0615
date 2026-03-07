@@ -53,6 +53,24 @@ body {
   font-family: var(--font);
 }
 
+@media (hover: none) and (pointer: coarse) {
+  body {
+    background: var(--off-white);
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+  .phone-outer {
+    width: 100%;
+    min-height: var(--app-height);
+    padding: 0;
+  }
+  .phone-frame {
+    width: 100%;
+    max-width: 100vw;
+    min-height: var(--app-height);
+  }
+}
+
 /* ── Phone Frame ── */
 .phone-outer {
   display: flex;
@@ -223,6 +241,7 @@ body {
   scrollbar-width: none;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 .home-page-gap {
   flex: 0 0 var(--home-page-gap);
@@ -248,6 +267,33 @@ body {
   flex-direction: column;
   gap: 0;
   padding-bottom: 0;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .home-content {
+    padding: max(12px, env(safe-area-inset-top)) 12px max(18px, env(safe-area-inset-bottom)) 12px;
+  }
+  .home-shell,
+  .page-two-shell {
+    width: min(100%, 375px);
+    margin: 0 auto;
+  }
+  .home-content,
+  .home-shell,
+  .page-two-shell,
+  .home-page {
+    touch-action: pan-y;
+  }
+  .media-panel,
+  .bond-widget-inner,
+  .page-two-app-row .home-app-label {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .media-panel,
+  .bond-widget-inner {
+    box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+  }
 }
 
 .media-panel {
